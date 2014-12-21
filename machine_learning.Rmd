@@ -111,6 +111,6 @@ predict(m_gbm, newdata=test)
 Generalized Boosted Regression Models is better with the following error rates
 
 ```{r, cache=TRUE}
-e_rpart
-p_gbm
+e_rpart # Error rate of Recursive Partitioning and Regression Trees
+e_gbm # Error of Generalized Boosted Regression Models
 ```
