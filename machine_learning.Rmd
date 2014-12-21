@@ -1,0 +1,116 @@
+---
+title: "Machine Learning for Human Activity Recognition"
+author: "Steven Park"
+date: "Sunday, December 21, 2014"
+output: html_document
+---
+
+This is a document for a machine learning project with Human Activity Recognition. Human Activity Recognition - HAR - has emerged as a key research area in the last years and is gaining increasing attention by the pervasive computing research community (see picture below, that illustrates the increasing number of publications in HAR with wearable accelerometers), especially for the development of context-aware systems. There are many potential applications for HAR, like: elderly monitoring, life log systems for monitoring energy expenditure and for supporting weight-loss programs, and digital assistants for weight lifting exercises. 
+
+Details : http://groupware.les.inf.puc-rio.br/har
+
+###Data and preperation
+The training data for this project are available here. Pleaes download two files to your working directory.
+
+    https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+    
+The test data are available here: 
+
+    https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+You need to install caret library first.
+
+    install.packages("caret")
+    install.packages("rpart")
+    install.packages("gbm")
+    install.packages("randomForest")
+    install.packages("plyr")
+    install.packages("lattice")
+    install.packages("ggplot2")
+
+Load libraries
+```{r,cache=TRUE, results='hide', warning=FALSE}
+library(caret) 
+library(rpart) 
+library(gbm)
+library(randomForest) 
+library(plyr)
+```
+Read two downloaded files
+```{r,cache=TRUE, results='hide', warning=FALSE}
+data <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+```
+You need to remove columns having more than 10% of NA or empty. Also columns like row numbers, user names, timestamps should be removed.
+```{r, cache=TRUE}
+col <- (colSums(is.na(data)) < nrow(data) * 0.1) & 
+    (colSums(data=="") < nrow(data) * 0.1) & 
+    !(colnames(data) %in% c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp"))
+data1 <- data[col]
+```
+
+The data will be partitioned to training set (75%) and cross valication set (25%).
+
+```{r, cache=TRUE}
+inTrain <- createDataPartition(y=data1$classe, p=0.75, list=F)
+training <- data1[inTrain,]
+cv <- data1[-inTrain,]
+dim(training)
+```
+We'll test the three machine learning methods with caret package on training set and validate on cross valication set to compare the error rate. the best method will be choosed.
+
+* Recursive Partitioning and Regression Trees
+* Generalized Boosted Regression Models
+
+### Recursive Partitioning and Regression Trees
+
+Runing "Recursive Partitioning and Regression Trees" with caret package.
+```{r,cache=TRUE, results='hide', warning=FALSE}
+set.seed(1995)
+m_rpart <- train(classe~., data=training, method="rpart")
+```
+```{r, echo=FALSE, cache=TRUE}
+m_rpart 
+```
+The error rate over cross valication samples
+```{r, cache=TRUE}
+p_rpart <- predict(m_rpart, newdata=cv)
+c_rpart <- confusionMatrix(p_rpart, cv$classe)
+e_rpart <- as.numeric(1-c_rpart$overall[1])
+e_rpart
+```
+You can predict with test samples 
+```{r, cache=TRUE}
+predict(m_rpart, newdata=test)
+```
+
+### Generalized Boosted Regression Models
+
+Runing "Generalized Boosted Regression Models" with caret package.
+```{r,cache=TRUE, results='hide', warning=FALSE}
+set.seed(1995)
+m_gbm <- train(classe~., data=training, method="gbm")
+```
+```{r, echo=FALSE, cache=TRUE}
+m_gbm
+```
+The error rate over cross valication samples
+```{r, cache=TRUE}
+p_gbm <- predict(m_gbm, newdata=cv)
+c_gbm <- confusionMatrix(p_gbm, cv$classe)
+e_gbm <- as.numeric(1-c_gbm$overall[1])
+e_gbm
+```
+You can predict with test samples 
+```{r, cache=TRUE}
+predict(m_gbm, newdata=test)
+```
+
+### Comparisons with error rates over validation set
+
+Generalized Boosted Regression Models is better with the following error rates
+
+```{r, cache=TRUE}
+e_rpart
+p_gbm
+```
